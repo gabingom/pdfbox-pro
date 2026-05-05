@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>pdfBOX Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#07090f;color:#e2e8f0;font-family:'DM Sans',sans-serif;min-height:100vh;}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 80% 50% at 10% 0%,rgba(99,179,237,.08) 0%,transparent 60%),
+             radial-gradient(ellipse 60% 40% at 90% 100%,rgba(159,122,234,.08) 0%,transparent 60%);}
+header{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;
+  padding:0 48px;height:64px;background:rgba(7,9,15,.9);backdrop-filter:blur(20px);
+  border-bottom:1px solid rgba(255,255,255,.06);}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#63b3ed,#9f7aea);
+  display:flex;align-items:center;justify-content:center;font-size:16px;}
+.logo-text{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;}
+.logo-text span{color:#63b3ed;}
+.badge{display:flex;align-items:center;gap:7px;font-size:13px;color:#64748b;}
+.dot{width:8px;height:8px;border-radius:50%;background:#68d391;box-shadow:0 0 6px #68d391;
+  animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+.hero{position:relative;z-index:1;text-align:center;padding:64px 48px 40px;}
+.hero h1{font-family:'Syne',sans-serif;font-size:clamp(30px,4vw,50px);font-weight:800;
+  letter-spacing:-2px;line-height:1.1;margin-bottom:14px;}
+.hero h1 em{font-style:normal;background:linear-gradient(90deg,#63b3ed,#9f7aea,#68d391);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.hero p{color:#64748b;font-size:16px;max-width:480px;margin:0 auto;line-height:1.6;}
+
+.grid{position:relative;z-index:1;display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+  gap:18px;padding:0 48px 60px;max-width:1300px;margin:0 auto;}
+
+.card{background:#0d1117;border:1px solid rgba(255,255,255,.06);border-radius:18px;padding:24px;transition:.25s;}
+.card:hover{border-color:var(--c);background:#111827;transform:translateY(-3px);box-shadow:0 16px 50px rgba(0,0,0,.4);}
+.card-head{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-size:18px;background:var(--ibg);border:1px solid var(--ib);flex-shrink:0;}
+.card h3{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;}
+.desc{font-size:13px;color:#64748b;margin-bottom:16px;line-height:1.5;}
+
+.c1{--c:#63b3ed;--ibg:rgba(99,179,237,.1);--ib:rgba(99,179,237,.2);--bf:#63b3ed;--bt:#4299e1;}
+.c2{--c:#9f7aea;--ibg:rgba(159,122,234,.1);--ib:rgba(159,122,234,.2);--bf:#9f7aea;--bt:#805ad5;}
+.c3{--c:#68d391;--ibg:rgba(104,211,145,.1);--ib:rgba(104,211,145,.2);--bf:#68d391;--bt:#48bb78;}
+.c4{--c:#f6ad55;--ibg:rgba(246,173,85,.1);--ib:rgba(246,173,85,.2);--bf:#f6ad55;--bt:#ed8936;}
+.c5{--c:#fc8181;--ibg:rgba(252,129,129,.1);--ib:rgba(252,129,129,.2);--bf:#fc8181;--bt:#f56565;}
+.c6{--c:#76e4f7;--ibg:rgba(118,228,247,.1);--ib:rgba(118,228,247,.2);--bf:#76e4f7;--bt:#0bc5ea;}
+.c7{--c:#b794f4;--ibg:rgba(183,148,244,.1);--ib:rgba(183,148,244,.2);--bf:#b794f4;--bt:#9f7aea;}
+.c8{--c:#fbd38d;--ibg:rgba(251,211,141,.1);--ib:rgba(251,211,141,.2);--bf:#fbd38d;--bt:#f6ad55;}
+
+.zone{border:2px dashed rgba(255,255,255,.08);border-radius:10px;padding:18px;text-align:center;
+  cursor:pointer;position:relative;margin-bottom:10px;transition:.2s;}
+.zone:hover{border-color:var(--c);background:rgba(255,255,255,.02);}
+.zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.zi{font-size:22px;margin-bottom:5px;}
+.zt{font-size:12px;color:#64748b;}
+.zn{font-size:12px;color:var(--c);font-weight:500;margin-top:4px;display:none;word-break:break-all;}
+
+.field{margin-bottom:10px;}
+.field label{display:block;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;}
+input[type=number],input[type=password],input[type=text],textarea{
+  width:100%;padding:10px 13px;border-radius:9px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);
+  color:#e2e8f0;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:.2s;}
+input:focus,textarea:focus{border-color:var(--c);background:rgba(255,255,255,.06);}
+input::placeholder,textarea::placeholder{color:#475569;}
+textarea{min-height:90px;resize:vertical;}
+
+.btn{width:100%;padding:12px;border:none;border-radius:10px;cursor:pointer;
+  background:linear-gradient(135deg,var(--bf),var(--bt));color:#fff;
+  font-family:'Syne',sans-serif;font-size:14px;font-weight:700;
+  transition:.2s;display:flex;align-items:center;justify-content:center;gap:7px;}
+.btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.35);}
+.btn:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sp{display:inline-block;animation:spin .7s linear infinite;}
+
+.result{margin-top:12px;padding:10px 13px;border-radius:9px;font-size:13px;display:none;word-break:break-all;}
+.ok {background:rgba(104,211,145,.08);border:1px solid rgba(104,211,145,.2);color:#68d391;}
+.err{background:rgba(252,129,129,.08);border:1px solid rgba(252,129,129,.2);color:#fc8181;}
+.txt{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);color:#cbd5e1;
+  white-space:pre-wrap;max-height:180px;overflow-y:auto;}
+
+.info-box{margin-top:12px;display:none;}
+.info-row{display:flex;justify-content:space-between;padding:7px 0;
+  border-bottom:1px solid rgba(255,255,255,.06);font-size:13px;}
+.info-row:last-child{border-bottom:none;}
+.ik{color:#64748b;} .iv{color:#e2e8f0;font-weight:500;}
+
+#toasts{position:fixed;bottom:28px;right:28px;z-index:999;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#0d1117;border:1px solid rgba(255,255,255,.08);border-radius:12px;
+  padding:12px 18px;font-size:13px;min-width:260px;box-shadow:0 12px 40px rgba(0,0,0,.5);
+  animation:tin .3s ease;}
+@keyframes tin{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
+footer{position:relative;z-index:1;text-align:center;padding:24px;color:#334155;
+  font-size:12px;border-top:1px solid rgba(255,255,255,.04);}
+@media(max-width:768px){header{padding:0 20px;}.hero{padding:40px 20px 30px;}.grid{padding:0 20px 40px;}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-icon">📄</div>
+    <div class="logo-text">pdf<span>BOX</span> Pro</div>
+  </div>
+  <div class="badge"><div class="dot"></div>Serveur actif</div>
+</header>
+
+<div class="hero">
+  <h1>Gestion <em>PDF intelligente</em><br>et professionnelle</h1>
+  <p>Fusionner, decouper, proteger, convertir et creer des fichiers PDF directement depuis votre navigateur.</p>
+</div>
+
+<div class="grid">
+
+  <div class="card c1">
+    <div class="card-head"><div class="icon">🔗</div><h3>Fusion de PDFs</h3></div>
+    <p class="desc">Assemblez plusieurs PDF en un seul document.</p>
+    <div class="zone" id="z-merge">
+      <input type="file" multiple accept=".pdf" onchange="zn(this,'merge')">
+      <div class="zi">📂</div><div class="zt">Cliquez ou glissez — plusieurs fichiers PDF</div>
+      <div class="zn" id="n-merge"></div>
+    </div>
+    <button class="btn" onclick="doMerge(this)"><span class="bi">🔗</span>Fusionner</button>
+    <div class="result" id="r-merge"></div>
+  </div>
+
+  <div class="card c2">
+    <div class="card-head"><div class="icon">✂️</div><h3>Decoupage PDF</h3></div>
+    <p class="desc">Separex chaque page en fichier individuel (ZIP).</p>
+    <div class="zone" id="z-split">
+      <input type="file" accept=".pdf" onchange="zn(this,'split')">
+      <div class="zi">📄</div><div class="zt">Cliquez ou glissez — 1 fichier PDF</div>
+      <div class="zn" id="n-split"></div>
+    </div>
+    <button class="btn" onclick="doSplit(this)"><span class="bi">✂️</span>Decouper en pages</button>
+    <div class="result" id="r-split"></div>
+  </div>
+
+  <div class="card c3">
+    <div class="card-head"><div class="icon">📌</div><h3>Extraire une page</h3></div>
+    <p class="desc">Recuperez une page precise d'un document PDF.</p>
+    <div class="zone" id="z-extract">
+      <input type="file" accept=".pdf" onchange="zn(this,'extract')">
+      <div class="zi">📄</div><div class="zt">Cliquez ou glissez — 1 fichier PDF</div>
+      <div class="zn" id="n-extract"></div>
+    </div>
+    <div class="field"><label>Numero de page</label>
+      <input type="number" id="pg-extract" placeholder="ex : 3" min="1"></div>
+    <button class="btn" onclick="doExtract(this)"><span class="bi">📌</span>Extraire</button>
+    <div class="result" id="r-extract"></div>
+  </div>
+
+  <div class="card c4">
+    <div class="card-head"><div class="icon">🗑️</div><h3>Supprimer une page</h3></div>
+    <p class="desc">Retirez une page d'un document PDF.</p>
+    <div class="zone" id="z-delete">
+      <input type="file" accept=".pdf" onchange="zn(this,'delete')">
+      <div class="zi">📄</div><div class="zt">Cliquez ou glissez — 1 fichier PDF</div>
+      <div class="zn" id="n-delete"></div>
+    </div>
+    <div class="field"><label>Numero de page a supprimer</label>
+      <input type="number" id="pg-delete" placeholder="ex : 2" min="1"></div>
+    <button class="btn" onclick="doDelete(this)"><span class="bi">🗑️</span>Supprimer</button>
+    <div class="result" id="r-delete"></div>
+  </div>
+
+  <div class="card c5">
+    <div class="card-head"><div class="icon">🔐</div><h3>Proteger PDF</h3></div>
+    <p class="desc">Ajoutez un mot de passe a votre document.</p>
+    <div class="zone" id="z-protect">
+      <input type="file" accept=".pdf" onchange="zn(this,'protect')">
+      <div class="zi">📄</div><div class="zt">Cliquez ou glissez — 1 fichier PDF</div>
+      <div class="zn" id="n-protect"></div>
+    </div>
+    <div class="field"><label>Mot de passe</label>
+      <input type="password" id="pw-protect" placeholder="Entrez un mot de passe"></div>
+    <button class="btn" onclick="doProtect(this)"><span class="bi">🔐</span>Proteger</button>
+    <div class="result" id="r-protect"></div>
+  </div>
+
+  <div class="card c6">
+    <div class="card-head"><div class="icon">📝</div><h3>Extraction de texte</h3></div>
+    <p class="desc">Recuperez tout le texte contenu dans un PDF.</p>
+    <div class="zone" id="z-text">
+      <input type="file" accept=".pdf" onchange="zn(this,'text')">
+      <div class="zi">📄</div><div class="zt">Cliquez ou glissez — 1 fichier PDF</div>
+      <div class="zn" id="n-text"></div>
+    </div>
+    <button class="btn" onclick="doText(this)"><span class="bi">📝</span>Extraire le texte</button>
+    <div class="result" id="r-text"></div>
+  </div>
+
+  <div class="card c7">
+    <div class="card-head"><div class="icon">✍️</div><h3>Creer un PDF</h3></div>
+    <p class="desc">Generez un nouveau PDF a partir de texte.</p>
+    <div class="field"><label>Titre</label>
+      <input type="text" id="create-title" placeholder="Titre du document"></div>
+    <div class="field"><label>Contenu</label>
+      <textarea id="create-content" placeholder="Ecrivez votre contenu ici..."></textarea></div>
+    <button class="btn" onclick="doCreate(this)"><span class="bi">✍️</span>Generer le PDF</button>
+    <div class="result" id="r-create"></div>
+  </div>
+
+  <div class="card c8">
+    <div class="card-head"><div class="icon">🔍</div><h3>Informations PDF</h3></div>
+    <p class="desc">Analysez les metadonnees d'un fichier PDF.</p>
+    <div class="zone" id="z-info">
+      <input type="file" accept=".pdf" onchange="zn(this,'info')">
+      <div class="zi">📄</div><div class="zt">Cliquez ou glissez — 1 fichier PDF</div>
+      <div class="zn" id="n-info"></div>
+    </div>
+    <button class="btn" onclick="doInfo(this)"><span class="bi">🔍</span>Analyser</button>
+    <div class="info-box" id="r-info">
+      <div class="info-row"><span class="ik">Pages</span><span class="iv" id="i-pages">—</span></div>
+      <div class="info-row"><span class="ik">Titre</span><span class="iv" id="i-title">—</span></div>
+      <div class="info-row"><span class="ik">Auteur</span><span class="iv" id="i-author">—</span></div>
+      <div class="info-row"><span class="ik">Createur</span><span class="iv" id="i-creator">—</span></div>
+      <div class="info-row"><span class="ik">Chiffre</span><span class="iv" id="i-enc">—</span></div>
+    </div>
+  </div>
+
+</div>
+<footer>pdfBOX Pro — Master MaDSI — Architecture Distribuee</footer>
+<div id="toasts"></div>
+
+<script>
+function zn(input, id) {
+  const el = document.getElementById('n-'+id);
+  if (!el || !input.files.length) return;
+  el.style.display = 'block';
+  el.textContent = Array.from(input.files).map(f=>f.name).join(', ');
+}
+function gf(id){ return document.querySelector('#z-'+id+' input[type=file]'); }
+function load(btn, on){
+  btn.disabled = on;
+  const bi = btn.querySelector('.bi');
+  if(on){ btn._o = bi.textContent; bi.innerHTML='<span class="sp">⟳</span>'; }
+  else bi.textContent = btn._o;
+}
+function res(id, msg, type){
+  const el = document.getElementById('r-'+id);
+  el.className = 'result '+type; el.style.display='block'; el.textContent = msg;
+}
+function toast(msg, ok){
+  const c = document.getElementById('toasts');
+  const t = document.createElement('div'); t.className='toast';
+  t.style.borderColor = ok ? 'rgba(104,211,145,.3)' : 'rgba(252,129,129,.3)';
+  t.textContent = msg; c.appendChild(t); setTimeout(()=>t.remove(), 4500);
+}
+async function dl(response, filename){
+  if(!response.ok){ const j=await response.json().catch(()=>({})); throw new Error(j.error||'Erreur serveur'); }
+  const blob = await response.blob();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+async function doMerge(btn){
+  const f = gf('merge');
+  if(!f.files.length) return toast('Selectionnez au moins 2 fichiers.', false);
+  const fd = new FormData(); Array.from(f.files).forEach(x=>fd.append('files',x));
+  load(btn,true);
+  try{ await dl(await fetch('/merge',{method:'POST',body:fd}),'fusion.pdf'); res('merge','Fusion reussie — fichier telecharge.','ok'); toast('PDF fusionne !',true); }
+  catch(e){ res('merge',e.message,'err'); toast(e.message,false); } load(btn,false);
+}
+async function doSplit(btn){
+  const f = gf('split');
+  if(!f.files.length) return toast('Selectionnez un fichier.', false);
+  const fd = new FormData(); fd.append('file',f.files[0]);
+  load(btn,true);
+  try{ await dl(await fetch('/split',{method:'POST',body:fd}),'pages.zip'); res('split','Decoupage reussi — ZIP telecharge.','ok'); toast('ZIP telecharge !',true); }
+  catch(e){ res('split',e.message,'err'); toast(e.message,false); } load(btn,false);
+}
+async function doExtract(btn){
+  const f = gf('extract'); const pg = document.getElementById('pg-extract').value;
+  if(!f.files.length) return toast('Selectionnez un fichier.', false);
+  if(!pg) return toast('Indiquez un numero de page.', false);
+  const fd = new FormData(); fd.append('file',f.files[0]); fd.append('page',pg);
+  load(btn,true);
+  try{ await dl(await fetch('/extract',{method:'POST',body:fd}),`page_${pg}.pdf`); res('extract',`Page ${pg} extraite.`,'ok'); toast(`Page ${pg} extraite !`,true); }
+  catch(e){ res('extract',e.message,'err'); toast(e.message,false); } load(btn,false);
+}
+async function doDelete(btn){
+  const f = gf('delete'); const pg = document.getElementById('pg-delete').value;
+  if(!f.files.length) return toast('Selectionnez un fichier.', false);
+  if(!pg) return toast('Indiquez un numero de page.', false);
+  const fd = new FormData(); fd.append('file',f.files[0]); fd.append('page',pg);
+  load(btn,true);
+  try{ await dl(await fetch('/delete',{method:'POST',body:fd}),'sans_page.pdf'); res('delete',`Page ${pg} supprimee.`,'ok'); toast(`Page ${pg} supprimee !`,true); }
+  catch(e){ res('delete',e.message,'err'); toast(e.message,false); } load(btn,false);
+}
+async function doProtect(btn){
+  const f = gf('protect'); const pw = document.getElementById('pw-protect').value;
+  if(!f.files.length) return toast('Selectionnez un fichier.', false);
+  if(!pw) return toast('Entrez un mot de passe.', false);
+  const fd = new FormData(); fd.append('file',f.files[0]); fd.append('password',pw);
+  load(btn,true);
+  try{ await dl(await fetch('/protect',{method:'POST',body:fd}),'protege.pdf'); res('protect','PDF protege — telecharge.','ok'); toast('PDF protege !',true); }
+  catch(e){ res('protect',e.message,'err'); toast(e.message,false); } load(btn,false);
+}
+async function doText(btn){
+  const f = gf('text');
+  if(!f.files.length) return toast('Selectionnez un fichier.', false);
+  const fd = new FormData(); fd.append('file',f.files[0]);
+  load(btn,true);
+  try{
+    const r = await fetch('/text',{method:'POST',body:fd});
+    const j = await r.json(); if(j.error) throw new Error(j.error);
+    res('text', j.result, 'txt'); toast('Texte extrait !',true);
+  } catch(e){ res('text',e.message,'err'); toast(e.message,false); } load(btn,false);
+}
+async function doCreate(btn){
+  const title   = document.getElementById('create-title').value.trim()||'Document';
+  const content = document.getElementById('create-content').value.trim();
+  if(!content) return toast('Ecrivez du contenu.', false);
+  load(btn,true);
+  try{
+    await dl(await fetch('/create',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({title,content})}),`${title}.pdf`);
+    res('create','PDF genere — telecharge.','ok'); toast('PDF cree !',true);
+  } catch(e){ res('create',e.message,'err'); toast(e.message,false); } load(btn,false);
+}
+async function doInfo(btn){
+  const f = gf('info');
+  if(!f.files.length) return toast('Selectionnez un fichier.', false);
+  const fd = new FormData(); fd.append('file',f.files[0]);
+  load(btn,true);
+  try{
+    const r = await fetch('/info',{method:'POST',body:fd});
+    const j = await r.json(); if(j.error) throw new Error(j.error);
+    document.getElementById('i-pages').textContent   = j.pages;
+    document.getElementById('i-title').textContent   = j.title;
+    document.getElementById('i-author').textContent  = j.author;
+    document.getElementById('i-creator').textContent = j.creator;
+    document.getElementById('i-enc').textContent     = j.encrypted ? 'Oui' : 'Non';
+    document.getElementById('r-info').style.display  = 'block';
+    toast('Analyse terminee !',true);
+  } catch(e){ toast(e.message,false); } load(btn,false);
+}
+</script>
+</body>
+</html>
