@@ -1,161 +1,90 @@
-from flask import Flask, request, send_file, jsonify
+from flask import Flask, request, jsonify
 from flask_cors import CORS
-from pypdf import PdfReader, PdfWriter
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import mm
-from reportlab.lib import colors
-import os, uuid, zipfile, io
+import subprocess, os, platform
 
-app = Flask(__name__, static_folder='static', static_url_path='')
+app = Flask(__name__)
 CORS(app)
 
-UPLOAD = '/tmp/uploads'
-OUTPUT = '/tmp/outputs'
-os.makedirs(UPLOAD, exist_ok=True)
-os.makedirs(OUTPUT, exist_ok=True)
+# ── Séparateur classpath selon l'OS ──────────────────────────────────────────
+SEP = ";" if platform.system() == "Windows" else ":"
 
-def uid(): return uuid.uuid4().hex[:8]
+# ── Chemins ──────────────────────────────────────────────────────────────────
+BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
+CLIENT_BIN = os.path.join(BASE_DIR, "CorbaPDFBoxClient", "bin")
+LIB_DIR    = os.path.join(BASE_DIR, "lib")
 
-def save(f):
-    path = os.path.join(UPLOAD, f"{uid()}_{f.filename}")
-    f.save(path)
-    return path
+# ── NOMS EXACTS des JARs ─────────────────────────────────────────────────────
+JARS = [
+    os.path.join(LIB_DIR, "pdfbox-2.0.29.jar"),      # ← nom exact
+    os.path.join(LIB_DIR, "fontbox2.jar"),
+    os.path.join(LIB_DIR, "commons-logging.jar"),
+    os.path.join(LIB_DIR, "corba-jdk8.jar"),
+]
 
-@app.route('/')
-def index():
-    return send_file('static/index.html')
+CLASSPATH = SEP.join([CLIENT_BIN] + JARS)
+ORB_ARGS  = ["-ORBInitialPort", "1050", "-ORBInitialHost", "localhost"]
 
-# 1. FUSION
-@app.route('/merge', methods=['POST'])
+def call_corba(action, args_input):
+    cmd = ["java", "-cp", CLASSPATH, "CallClient", action] + args_input + ORB_ARGS
+    print(f"[CMD] {' '.join(cmd)}", flush=True)
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        out = result.stdout.strip()
+        err = result.stderr.strip()
+        print(f"[OUT] {out}", flush=True)
+        if err: print(f"[ERR] {err}", flush=True)
+        if result.returncode != 0 and not out:
+            return f"ERREUR: {err or 'Erreur inconnue'}"
+        return out if out else f"ERREUR: {err}"
+    except subprocess.TimeoutExpired:
+        return "ERREUR: Timeout — le serveur CORBA ne répond pas"
+    except FileNotFoundError:
+        return "ERREUR: java introuvable"
+
+@app.route("/", methods=["GET"])
+def home():
+    return "pdfBOX Bridge actif", 200
+
+@app.route("/merge", methods=["POST"])
 def merge():
-    files = request.files.getlist('files')
-    if len(files) < 2:
-        return jsonify(error="Selectionner au moins 2 fichiers PDF."), 400
-    writer = PdfWriter()
-    for f in files:
-        for page in PdfReader(save(f)).pages:
-            writer.add_page(page)
-    out = os.path.join(OUTPUT, f"merged_{uid()}.pdf")
-    with open(out, 'wb') as fh: writer.write(fh)
-    return send_file(out, as_attachment=True, download_name='fusion.pdf')
+    d = request.json or {}
+    return jsonify(result=call_corba("merge", [d.get("inputPaths",""), d.get("outputPath","")]))
 
-# 2. DECOUPAGE
-@app.route('/split', methods=['POST'])
+@app.route("/split", methods=["POST"])
 def split():
-    f = request.files.get('file')
-    if not f: return jsonify(error="Aucun fichier recu."), 400
-    reader = PdfReader(save(f))
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, 'w') as zf:
-        for i, page in enumerate(reader.pages):
-            writer = PdfWriter()
-            writer.add_page(page)
-            pb = io.BytesIO()
-            writer.write(pb)
-            zf.writestr(f"page_{i+1}.pdf", pb.getvalue())
-    buf.seek(0)
-    return send_file(buf, mimetype='application/zip', as_attachment=True, download_name='pages.zip')
+    d = request.json or {}
+    return jsonify(result=call_corba("split", [d.get("inputPath",""), d.get("outputDir","")]))
 
-# 3. EXTRAIRE PAGE
-@app.route('/extract', methods=['POST'])
+@app.route("/extract", methods=["POST"])
 def extract():
-    f = request.files.get('file')
-    page_num = int(request.form.get('page', 1))
-    if not f: return jsonify(error="Aucun fichier recu."), 400
-    reader = PdfReader(save(f))
-    if page_num < 1 or page_num > len(reader.pages):
-        return jsonify(error=f"Page invalide. Ce PDF a {len(reader.pages)} page(s)."), 400
-    writer = PdfWriter()
-    writer.add_page(reader.pages[page_num - 1])
-    out = os.path.join(OUTPUT, f"page_{uid()}.pdf")
-    with open(out, 'wb') as fh: writer.write(fh)
-    return send_file(out, as_attachment=True, download_name=f'page_{page_num}.pdf')
+    d = request.json or {}
+    return jsonify(result=call_corba("extract", [d.get("inputPath",""), str(d.get("pageNumber",1)), d.get("outputPath","")]))
 
-# 4. SUPPRIMER PAGE
-@app.route('/delete', methods=['POST'])
+@app.route("/delete", methods=["POST"])
 def delete():
-    f = request.files.get('file')
-    page_num = int(request.form.get('page', 1))
-    if not f: return jsonify(error="Aucun fichier recu."), 400
-    reader = PdfReader(save(f))
-    if page_num < 1 or page_num > len(reader.pages):
-        return jsonify(error=f"Page invalide. Ce PDF a {len(reader.pages)} page(s)."), 400
-    writer = PdfWriter()
-    for i, page in enumerate(reader.pages):
-        if i != page_num - 1:
-            writer.add_page(page)
-    out = os.path.join(OUTPUT, f"deleted_{uid()}.pdf")
-    with open(out, 'wb') as fh: writer.write(fh)
-    return send_file(out, as_attachment=True, download_name='sans_page.pdf')
+    d = request.json or {}
+    return jsonify(result=call_corba("delete", [d.get("inputPath",""), str(d.get("pageNumber",1)), d.get("outputPath","")]))
 
-# 5. PROTEGER
-@app.route('/protect', methods=['POST'])
+@app.route("/protect", methods=["POST"])
 def protect():
-    f = request.files.get('file')
-    password = request.form.get('password', '')
-    if not f: return jsonify(error="Aucun fichier recu."), 400
-    if not password: return jsonify(error="Mot de passe requis."), 400
-    reader = PdfReader(save(f))
-    writer = PdfWriter()
-    for page in reader.pages: writer.add_page(page)
-    writer.encrypt(password)
-    out = os.path.join(OUTPUT, f"protected_{uid()}.pdf")
-    with open(out, 'wb') as fh: writer.write(fh)
-    return send_file(out, as_attachment=True, download_name='protege.pdf')
+    d = request.json or {}
+    return jsonify(result=call_corba("protect", [d.get("inputPath",""), d.get("password",""), d.get("outputPath","")]))
 
-# 6. EXTRAIRE TEXTE
-@app.route('/text', methods=['POST'])
-def extract_text():
-    f = request.files.get('file')
-    if not f: return jsonify(error="Aucun fichier recu."), 400
-    reader = PdfReader(save(f))
-    text = ''
-    for i, page in enumerate(reader.pages):
-        t = page.extract_text()
-        if t: text += f"--- Page {i+1} ---\n{t}\n\n"
-    return jsonify(result=text.strip() or "(Aucun texte extractible)")
+@app.route("/images", methods=["POST"])
+def images():
+    d = request.json or {}
+    return jsonify(result=call_corba("images", [d.get("inputPath",""), d.get("outputDir",""), d.get("format","png")]))
 
-# 7. CREER PDF
-@app.route('/create', methods=['POST'])
+@app.route("/text", methods=["POST"])
+def text():
+    d = request.json or {}
+    return jsonify(result=call_corba("text", [d.get("inputPath","")]))
+
+@app.route("/create", methods=["POST"])
 def create():
-    data = request.json or {}
-    title   = data.get('title', 'Document').strip()
-    content = data.get('content', '').strip()
-    if not content: return jsonify(error="Contenu vide."), 400
-    out = os.path.join(OUTPUT, f"doc_{uid()}.pdf")
-    doc = SimpleDocTemplate(out, pagesize=A4,
-                            leftMargin=20*mm, rightMargin=20*mm,
-                            topMargin=25*mm, bottomMargin=20*mm)
-    styles = getSampleStyleSheet()
-    t_style = ParagraphStyle('T', parent=styles['Title'], fontSize=20,
-                             textColor=colors.HexColor('#1e293b'), spaceAfter=10)
-    b_style = ParagraphStyle('B', parent=styles['Normal'], fontSize=12,
-                             leading=18, textColor=colors.HexColor('#334155'))
-    story = [Paragraph(title, t_style), Spacer(1, 6*mm)]
-    for para in content.split('\n'):
-        if para.strip():
-            story.append(Paragraph(para.strip(), b_style))
-            story.append(Spacer(1, 3*mm))
-    doc.build(story)
-    return send_file(out, as_attachment=True, download_name=f'{title[:40]}.pdf')
+    d = request.json or {}
+    return jsonify(result=call_corba("create", [d.get("title",""), d.get("content",""), d.get("outputPath","")]))
 
-# 8. INFOS PDF
-@app.route('/info', methods=['POST'])
-def info():
-    f = request.files.get('file')
-    if not f: return jsonify(error="Aucun fichier recu."), 400
-    reader = PdfReader(save(f))
-    meta = reader.metadata or {}
-    return jsonify({
-        'pages':     len(reader.pages),
-        'title':     meta.get('/Title', '—'),
-        'author':    meta.get('/Author', '—'),
-        'creator':   meta.get('/Creator', '—'),
-        'encrypted': reader.is_encrypted
-    })
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+if __name__ == "__main__":
+    print(f"\n=== pdfBOX Bridge — classpath : {CLASSPATH} ===\n", flush=True)
+    app.run(port=5000, debug=False)
