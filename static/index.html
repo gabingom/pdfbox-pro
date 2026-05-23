@@ -111,26 +111,61 @@ header{position:sticky;top:0;z-index:100;height:74px;padding:0 30px;display:flex
 <body>
 
 <!-- LOCK -->
-<div id="lock-screen">
-  <div class="lock-card">
-    <div class="logo">
-      <div class="logo-icon">📄</div>
-      <div class="logo-text">pdf<span>BOX</span> Pro</div>
+<div id="auth-screen">
+  <div class="auth-card">
+
+    <div class="auth-logo">
+      <div class="auth-logo-icon">📄</div>
+      <div class="auth-logo-text">pdf<span>BOX</span> Pro</div>
     </div>
-    <div class="lock-title">Connexion</div>
-    <div class="lock-sub">Connectez-vous pour accéder à vos outils PDF intelligents.</div>
-    <div class="field">
-      <label>Nom</label>
-      <input type="text" id="username" placeholder="Jacques">
+
+    <h2 class="auth-title" id="auth-title">Bienvenue 👋</h2>
+    <p class="auth-sub" id="auth-sub">Connectez-vous pour accéder à vos outils PDF.</p>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Connexion</button>
+      <button class="auth-tab" id="tab-register" onclick="switchTab('register')">Créer un compte</button>
     </div>
-    <div class="field">
-      <label>Code d'accès</label>
-      <input type="password" id="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()">
+
+    <!-- CONNEXION -->
+    <div id="form-login">
+      <div class="field">
+        <label>Nom d'utilisateur</label>
+        <input type="text" id="login-username" placeholder="ex: jean.dupont" autocomplete="username" />
+      </div>
+      <div class="field">
+        <label>Mot de passe</label>
+        <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+      <button class="btn-primary" onclick="doLogin()">Se connecter →</button>
+      <div class="auth-msg" id="login-msg"></div>
     </div>
-    <button class="login-btn" onclick="login()">Se connecter →</button>
-    <div class="lock-msg err" id="lock-msg"></div>
+
+    <!-- INSCRIPTION -->
+    <div id="form-register" style="display:none">
+      <div class="field">
+        <label>Prénom</label>
+        <input type="text" id="reg-firstname" placeholder="Jean" />
+      </div>
+      <div class="field">
+        <label>Nom</label>
+        <input type="text" id="reg-lastname" placeholder="Dupont" />
+      </div>
+      <div class="field">
+        <label>Nom d'utilisateur</label>
+        <input type="text" id="reg-username" placeholder="jean.dupont" autocomplete="username" />
+      </div>
+      <div class="field">
+        <label>Mot de passe</label>
+        <input type="password" id="reg-password" placeholder="Minimum 6 caractères" autocomplete="new-password" />
+      </div>
+      <button class="btn-primary" onclick="doRegister()">Créer mon compte →</button>
+      <div class="auth-msg" id="register-msg"></div>
+    </div>
+
   </div>
 </div>
+
 
 <!-- APP -->
 <div id="app">
