@@ -1,4 +1,8 @@
+# ancien index modifié
 
+Remplace simplement le contenu de ton ancien `index.html` par celui-ci.
+
+```html
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -442,7 +446,209 @@ font-size:13px;
 
 <div class="grid">
 
-<!-- ICI TU GARDES TOUTES TES CARDS DE L'ANCIEN FICHIER -->
+<!-- 1. FUSION -->
+<div class="card c1">
+  <div class="card-head"><div class="icon">🔗</div><h3>Fusion de PDFs</h3></div>
+  <p class="desc">Assemblez plusieurs PDF en un seul document.</p>
+
+  <div class="field">
+    <label>Chemins des PDFs</label>
+    <input type="text" id="m-paths" placeholder="C:\doc1.pdf;C:\doc2.pdf">
+  </div>
+
+  <div class="field">
+    <label>Fichier de sortie</label>
+    <input type="text" id="m-out" placeholder="C:\fusion.pdf">
+  </div>
+
+  <button class="btn" onclick="call('merge',this)">
+    <span class="bi">🔗</span>
+    Fusionner
+  </button>
+
+  <div class="result" id="r-merge"></div>
+</div>
+
+<!-- 2. SPLIT -->
+<div class="card c2">
+  <div class="card-head"><div class="icon">✂️</div><h3>Découpage PDF</h3></div>
+  <p class="desc">Séparez chaque page en fichier individuel.</p>
+
+  <div class="field">
+    <label>Chemin du PDF</label>
+    <input type="text" id="s-in" placeholder="C:\document.pdf">
+  </div>
+
+  <div class="field">
+    <label>Dossier de sortie</label>
+    <input type="text" id="s-out" placeholder="C:\pages">
+  </div>
+
+  <button class="btn" onclick="call('split',this)">
+    <span class="bi">✂️</span>
+    Découper
+  </button>
+
+  <div class="result" id="r-split"></div>
+</div>
+
+<!-- 3. EXTRAIRE -->
+<div class="card c3">
+  <div class="card-head"><div class="icon">📌</div><h3>Extraire une page</h3></div>
+  <p class="desc">Récupérez une page précise d'un PDF.</p>
+
+  <div class="field">
+    <label>Chemin du PDF</label>
+    <input type="text" id="e-in" placeholder="C:\document.pdf">
+  </div>
+
+  <div class="field">
+    <label>Numéro de page</label>
+    <input type="number" id="e-pg" placeholder="3" min="1">
+  </div>
+
+  <div class="field">
+    <label>Fichier de sortie</label>
+    <input type="text" id="e-out" placeholder="C:\page3.pdf">
+  </div>
+
+  <button class="btn" onclick="call('extract',this)">
+    <span class="bi">📌</span>
+    Extraire
+  </button>
+
+  <div class="result" id="r-extract"></div>
+</div>
+
+<!-- 4. DELETE -->
+<div class="card c4">
+  <div class="card-head"><div class="icon">🗑️</div><h3>Supprimer une page</h3></div>
+  <p class="desc">Supprimez une page d'un PDF existant.</p>
+
+  <div class="field">
+    <label>Chemin du PDF</label>
+    <input type="text" id="d-in" placeholder="C:\document.pdf">
+  </div>
+
+  <div class="field">
+    <label>Numéro de page</label>
+    <input type="number" id="d-pg" placeholder="2" min="1">
+  </div>
+
+  <div class="field">
+    <label>Fichier de sortie</label>
+    <input type="text" id="d-out" placeholder="C:\resultat.pdf">
+  </div>
+
+  <button class="btn" onclick="call('delete',this)">
+    <span class="bi">🗑️</span>
+    Supprimer
+  </button>
+
+  <div class="result" id="r-delete"></div>
+</div>
+
+<!-- 5. PROTECT -->
+<div class="card c5">
+  <div class="card-head"><div class="icon">🔐</div><h3>Protéger PDF</h3></div>
+  <p class="desc">Ajoutez un mot de passe à votre document.</p>
+
+  <div class="field">
+    <label>Chemin du PDF</label>
+    <input type="text" id="p-in" placeholder="C:\document.pdf">
+  </div>
+
+  <div class="field">
+    <label>Mot de passe</label>
+    <input type="password" id="p-pw" placeholder="••••••••">
+  </div>
+
+  <div class="field">
+    <label>Fichier de sortie</label>
+    <input type="text" id="p-out" placeholder="C:\protege.pdf">
+  </div>
+
+  <button class="btn" onclick="call('protect',this)">
+    <span class="bi">🔐</span>
+    Protéger
+  </button>
+
+  <div class="result" id="r-protect"></div>
+</div>
+
+<!-- 6. IMAGES -->
+<div class="card c6">
+  <div class="card-head"><div class="icon">🖼️</div><h3>PDF → Images</h3></div>
+  <p class="desc">Convertissez chaque page en image PNG ou JPG.</p>
+
+  <div class="field">
+    <label>Chemin du PDF</label>
+    <input type="text" id="i-in" placeholder="C:\document.pdf">
+  </div>
+
+  <div class="field">
+    <label>Dossier de sortie</label>
+    <input type="text" id="i-out" placeholder="C:\images">
+  </div>
+
+  <div class="field">
+    <label>Format</label>
+    <input type="text" id="i-fmt" placeholder="png">
+  </div>
+
+  <button class="btn" onclick="call('images',this)">
+    <span class="bi">🖼️</span>
+    Convertir
+  </button>
+
+  <div class="result" id="r-images"></div>
+</div>
+
+<!-- 7. TEXT -->
+<div class="card c7">
+  <div class="card-head"><div class="icon">📝</div><h3>Extraction de texte</h3></div>
+  <p class="desc">Récupérez le texte d'un PDF.</p>
+
+  <div class="field">
+    <label>Chemin du PDF</label>
+    <input type="text" id="t-in" placeholder="C:\document.pdf">
+  </div>
+
+  <button class="btn" onclick="call('text',this)">
+    <span class="bi">📝</span>
+    Extraire
+  </button>
+
+  <div class="result" id="r-text"></div>
+</div>
+
+<!-- 8. CREATE -->
+<div class="card c8">
+  <div class="card-head"><div class="icon">✍️</div><h3>Créer un PDF</h3></div>
+  <p class="desc">Générez un PDF à partir de texte.</p>
+
+  <div class="field">
+    <label>Titre</label>
+    <input type="text" id="c-title" placeholder="Mon document">
+  </div>
+
+  <div class="field">
+    <label>Contenu</label>
+    <textarea id="c-content" placeholder="Écrivez votre contenu ici..."></textarea>
+  </div>
+
+  <div class="field">
+    <label>Fichier de sortie</label>
+    <input type="text" id="c-out" placeholder="C:\nouveau.pdf">
+  </div>
+
+  <button class="btn" onclick="call('create',this)">
+    <span class="bi">✍️</span>
+    Créer
+  </button>
+
+  <div class="result" id="r-create"></div>
+</div>
 
 </div>
 
@@ -573,4 +779,11 @@ function toast(msg){
 </script>
 </body>
 </html>
+```
 
+Après ça :
+
+* tu copies juste les 8 cards de l’ancien fichier dans `<div class="grid">`
+* tu ne touches PAS aux IDs
+* tu ne modifies PAS les fonctions `call()`
+* tout continuera à fonctionner normalement avec Flask/CORBA
