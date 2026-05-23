@@ -29,6 +29,13 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:linear-gradient(160de
 .login-btn:hover{transform:translateY(-2px)}
 .lock-msg{margin-top:14px;padding:12px;border-radius:12px;font-size:13px;display:none}
 .lock-msg.err{background:rgba(239,68,68,.1);color:#dc2626}
+.lock-msg.ok{background:rgba(34,197,94,.1);color:#16a34a}
+
+/* SWITCH LOGIN/REGISTER */
+.switch-link{text-align:center;margin-top:16px;font-size:13px;color:var(--muted)}
+.switch-link a{color:var(--blue);font-weight:700;cursor:pointer;text-decoration:none}
+.switch-link a:hover{text-decoration:underline}
+#form-register{display:none}
 
 /* APP */
 #app{display:none}
@@ -117,18 +124,45 @@ header{position:sticky;top:0;z-index:100;height:74px;padding:0 30px;display:flex
       <div class="logo-icon">📄</div>
       <div class="logo-text">pdf<span>BOX</span> Pro</div>
     </div>
-    <div class="lock-title">Connexion</div>
-    <div class="lock-sub">Connectez-vous pour accéder à vos outils PDF intelligents.</div>
-    <div class="field">
-      <label>Nom</label>
-      <input type="text" id="username" placeholder="Jacques">
+
+    <!-- FORMULAIRE CONNEXION -->
+    <div id="form-login">
+      <div class="lock-title">Connexion</div>
+      <div class="lock-sub">Connectez-vous pour accéder à vos outils PDF intelligents.</div>
+      <div class="field">
+        <label>Nom d'utilisateur</label>
+        <input type="text" id="login-username" placeholder="Jacques">
+      </div>
+      <div class="field">
+        <label>Mot de passe</label>
+        <input type="password" id="login-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()">
+      </div>
+      <button class="login-btn" onclick="login()">Se connecter →</button>
+      <div class="lock-msg err" id="login-msg"></div>
+      <div class="switch-link">Pas encore de compte ? <a onclick="showRegister()">S'inscrire</a></div>
     </div>
-    <div class="field">
-      <label>Code d'accès</label>
-      <input type="password" id="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()">
+
+    <!-- FORMULAIRE INSCRIPTION -->
+    <div id="form-register">
+      <div class="lock-title">Inscription</div>
+      <div class="lock-sub">Créez votre compte pour accéder à pdfBOX Pro.</div>
+      <div class="field">
+        <label>Nom d'utilisateur</label>
+        <input type="text" id="reg-username" placeholder="Jacques">
+      </div>
+      <div class="field">
+        <label>Mot de passe</label>
+        <input type="password" id="reg-password" placeholder="••••••••">
+      </div>
+      <div class="field">
+        <label>Confirmer le mot de passe</label>
+        <input type="password" id="reg-password2" placeholder="••••••••" onkeydown="if(event.key==='Enter')register()">
+      </div>
+      <button class="login-btn" onclick="register()">Créer mon compte →</button>
+      <div class="lock-msg" id="reg-msg"></div>
+      <div class="switch-link">Déjà un compte ? <a onclick="showLogin()">Se connecter</a></div>
     </div>
-    <button class="login-btn" onclick="login()">Se connecter →</button>
-    <div class="lock-msg err" id="lock-msg"></div>
+
   </div>
 </div>
 
@@ -278,18 +312,75 @@ header{position:sticky;top:0;z-index:100;height:74px;padding:0 30px;display:flex
 <script>
 const API = 'https://pdfbox-pro.onrender.com';
 
-/* ── AUTH ── */
+/* ── GESTION COMPTES (localStorage) ── */
+function getUsers(){
+  try{ return JSON.parse(localStorage.getItem('pdfbox_users')||'{}'); }catch(e){ return {}; }
+}
+function saveUsers(users){ localStorage.setItem('pdfbox_users', JSON.stringify(users)); }
+
+/* ── SWITCH FORMULAIRES ── */
+function showRegister(){
+  document.getElementById('form-login').style.display='none';
+  document.getElementById('form-register').style.display='block';
+  document.getElementById('reg-msg').style.display='none';
+}
+function showLogin(){
+  document.getElementById('form-register').style.display='none';
+  document.getElementById('form-login').style.display='block';
+  document.getElementById('login-msg').style.display='none';
+}
+
+/* ── INSCRIPTION ── */
+function register(){
+  const user  = document.getElementById('reg-username').value.trim();
+  const pass  = document.getElementById('reg-password').value.trim();
+  const pass2 = document.getElementById('reg-password2').value.trim();
+  const msg   = document.getElementById('reg-msg');
+
+  msg.className='lock-msg err';
+  if(!user || !pass || !pass2){ msg.style.display='block'; msg.textContent='Veuillez remplir tous les champs.'; return; }
+  if(pass.length < 4){ msg.style.display='block'; msg.textContent='Le mot de passe doit contenir au moins 4 caractères.'; return; }
+  if(pass !== pass2){ msg.style.display='block'; msg.textContent='Les mots de passe ne correspondent pas.'; return; }
+
+  const users = getUsers();
+  if(users[user]){ msg.style.display='block'; msg.textContent='Ce nom d\'utilisateur est déjà pris.'; return; }
+
+  users[user] = pass;
+  saveUsers(users);
+
+  msg.className='lock-msg ok';
+  msg.style.display='block';
+  msg.textContent='✅ Compte créé ! Vous pouvez vous connecter.';
+
+  setTimeout(()=>{
+    document.getElementById('reg-username').value='';
+    document.getElementById('reg-password').value='';
+    document.getElementById('reg-password2').value='';
+    document.getElementById('login-username').value=user;
+    showLogin();
+  }, 1500);
+}
+
+/* ── CONNEXION ── */
 function login(){
-  const user = document.getElementById('username').value.trim();
-  const pass = document.getElementById('password').value.trim();
-  const msg  = document.getElementById('lock-msg');
+  const user = document.getElementById('login-username').value.trim();
+  const pass = document.getElementById('login-password').value.trim();
+  const msg  = document.getElementById('login-msg');
+
   if(!user || !pass){ msg.style.display='block'; msg.textContent='Veuillez remplir tous les champs.'; return; }
+
+  const users = getUsers();
+  if(!users[user] || users[user] !== pass){ msg.style.display='block'; msg.textContent='Identifiants incorrects.'; return; }
+
+  msg.style.display='none';
   sessionStorage.setItem('pdfbox_user', user);
   document.getElementById('display-name').textContent = user;
   document.getElementById('lock-screen').style.display='none';
   document.getElementById('app').style.display='block';
 }
+
 function logout(){ sessionStorage.removeItem('pdfbox_user'); location.reload(); }
+
 window.addEventListener('DOMContentLoaded', ()=>{
   const user = sessionStorage.getItem('pdfbox_user');
   if(user){ document.getElementById('display-name').textContent=user; document.getElementById('lock-screen').style.display='none'; document.getElementById('app').style.display='block'; }
@@ -331,7 +422,6 @@ function toast(msg, ok=true){
   setTimeout(()=>t.remove(),4500);
 }
 
-/* Télécharge un blob renvoyé par Flask */
 async function download(res, fallbackName){
   if(!res.ok){
     let err='Erreur serveur';
@@ -346,7 +436,7 @@ async function download(res, fallbackName){
   const a = document.createElement('a');
   a.href=url; a.download=name; document.body.appendChild(a); a.click();
   setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 1000);
-  return null; // null = succès
+  return null;
 }
 
 /* ── ACTIONS ── */
