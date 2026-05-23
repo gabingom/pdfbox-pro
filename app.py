@@ -1,289 +1,161 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>pdfBOX Pro – Interface Web</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<style>
-* { margin:0; padding:0; box-sizing:border-box; }
-body { background:#07090f; color:#e2e8f0; font-family:'DM Sans',sans-serif; min-height:100vh; }
+from flask import Flask, request, send_file, jsonify
+from flask_cors import CORS
+from pypdf import PdfReader, PdfWriter
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import mm
+from reportlab.lib import colors
+import os, uuid, zipfile, io
 
-/* BG */
-body::after {
-  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
-  background: radial-gradient(ellipse 80% 50% at 10% 0%, rgba(99,179,237,.08) 0%, transparent 60%),
-              radial-gradient(ellipse 60% 40% at 90% 100%, rgba(159,122,234,.08) 0%, transparent 60%);
-}
+app = Flask(__name__, static_folder='static', static_url_path='')
+CORS(app)
 
-/* HEADER */
-header {
-  position:sticky; top:0; z-index:100;
-  display:flex; align-items:center; justify-content:space-between;
-  padding:0 48px; height:64px;
-  background:rgba(7,9,15,.9); backdrop-filter:blur(20px);
-  border-bottom:1px solid rgba(255,255,255,.06);
-}
-.logo { display:flex; align-items:center; gap:10px; }
-.logo-icon {
-  width:34px; height:34px; border-radius:9px;
-  background:linear-gradient(135deg,#63b3ed,#9f7aea);
-  display:flex; align-items:center; justify-content:center; font-size:16px;
-}
-.logo-text { font-family:'Syne',sans-serif; font-size:18px; font-weight:800; }
-.logo-text span { color:#63b3ed; }
-.status { display:flex; align-items:center; gap:7px; font-size:13px; color:#64748b; }
-.dot { width:8px; height:8px; border-radius:50%; background:#68d391; box-shadow:0 0 6px #68d391; }
+UPLOAD = '/tmp/uploads'
+OUTPUT = '/tmp/outputs'
+os.makedirs(UPLOAD, exist_ok=True)
+os.makedirs(OUTPUT, exist_ok=True)
 
-/* HERO */
-.hero { position:relative; z-index:1; text-align:center; padding:64px 48px 40px; }
-.hero h1 { font-family:'Syne',sans-serif; font-size:clamp(32px,4vw,52px); font-weight:800; letter-spacing:-2px; line-height:1.1; margin-bottom:14px; }
-.hero h1 em { font-style:normal; background:linear-gradient(90deg,#63b3ed,#9f7aea,#68d391); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-.hero p { color:#64748b; font-size:16px; max-width:440px; margin:0 auto; line-height:1.6; }
+def uid(): return uuid.uuid4().hex[:8]
 
-/* GRID */
-.grid { position:relative; z-index:1; display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:18px; padding:0 48px 60px; max-width:1300px; margin:0 auto; }
+def save(f):
+    path = os.path.join(UPLOAD, f"{uid()}_{f.filename}")
+    f.save(path)
+    return path
 
-/* CARD */
-.card {
-  background:#0d1117; border:1px solid rgba(255,255,255,.06); border-radius:18px;
-  padding:24px; transition:.25s;
-}
-.card:hover { border-color:var(--c); background:#111827; transform:translateY(-3px); box-shadow:0 16px 50px rgba(0,0,0,.4); }
-.card-head { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
-.icon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; background:var(--ibg); border:1px solid var(--ib); flex-shrink:0; }
-.card h3 { font-family:'Syne',sans-serif; font-size:16px; font-weight:700; }
-.card p.desc { font-size:13px; color:#64748b; margin-bottom:16px; line-height:1.5; }
+@app.route('/')
+def index():
+    return send_file('static/index.html')
 
-/* COLOR THEMES */
-.c1{--c:#63b3ed;--ibg:rgba(99,179,237,.1);--ib:rgba(99,179,237,.2);--bf:#63b3ed;--bt:#4299e1;}
-.c2{--c:#9f7aea;--ibg:rgba(159,122,234,.1);--ib:rgba(159,122,234,.2);--bf:#9f7aea;--bt:#805ad5;}
-.c3{--c:#68d391;--ibg:rgba(104,211,145,.1);--ib:rgba(104,211,145,.2);--bf:#68d391;--bt:#48bb78;}
-.c4{--c:#f6ad55;--ibg:rgba(246,173,85,.1);--ib:rgba(246,173,85,.2);--bf:#f6ad55;--bt:#ed8936;}
-.c5{--c:#fc8181;--ibg:rgba(252,129,129,.1);--ib:rgba(252,129,129,.2);--bf:#fc8181;--bt:#f56565;}
-.c6{--c:#76e4f7;--ibg:rgba(118,228,247,.1);--ib:rgba(118,228,247,.2);--bf:#76e4f7;--bt:#0bc5ea;}
-.c7{--c:#b794f4;--ibg:rgba(183,148,244,.1);--ib:rgba(183,148,244,.2);--bf:#b794f4;--bt:#9f7aea;}
-.c8{--c:#fbd38d;--ibg:rgba(251,211,141,.1);--ib:rgba(251,211,141,.2);--bf:#fbd38d;--bt:#f6ad55;}
+# 1. FUSION
+@app.route('/merge', methods=['POST'])
+def merge():
+    files = request.files.getlist('files')
+    if len(files) < 2:
+        return jsonify(error="Selectionner au moins 2 fichiers PDF."), 400
+    writer = PdfWriter()
+    for f in files:
+        for page in PdfReader(save(f)).pages:
+            writer.add_page(page)
+    out = os.path.join(OUTPUT, f"merged_{uid()}.pdf")
+    with open(out, 'wb') as fh: writer.write(fh)
+    return send_file(out, as_attachment=True, download_name='fusion.pdf')
 
-/* INPUTS */
-.field { margin-bottom:10px; }
-.field label { display:block; font-size:11px; color:#64748b; text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px; }
-input[type=text], input[type=number], input[type=password], textarea {
-  width:100%; padding:10px 13px; border-radius:9px;
-  background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07);
-  color:#e2e8f0; font-family:'DM Sans',sans-serif; font-size:13px; outline:none; transition:.2s;
-}
-input:focus, textarea:focus { border-color:var(--c); background:rgba(255,255,255,.06); }
-input::placeholder, textarea::placeholder { color:#475569; }
-textarea { min-height:90px; resize:vertical; }
+# 2. DECOUPAGE
+@app.route('/split', methods=['POST'])
+def split():
+    f = request.files.get('file')
+    if not f: return jsonify(error="Aucun fichier recu."), 400
+    reader = PdfReader(save(f))
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, 'w') as zf:
+        for i, page in enumerate(reader.pages):
+            writer = PdfWriter()
+            writer.add_page(page)
+            pb = io.BytesIO()
+            writer.write(pb)
+            zf.writestr(f"page_{i+1}.pdf", pb.getvalue())
+    buf.seek(0)
+    return send_file(buf, mimetype='application/zip', as_attachment=True, download_name='pages.zip')
 
-/* FILE ZONE */
-.zone {
-  border:2px dashed rgba(255,255,255,.08); border-radius:10px;
-  padding:16px; text-align:center; cursor:pointer;
-  position:relative; margin-bottom:10px; transition:.2s;
-}
-.zone:hover { border-color:var(--c); background:rgba(255,255,255,.02); }
-.zone input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
-.zone .zi { font-size:20px; margin-bottom:4px; }
-.zone .zt { font-size:12px; color:#64748b; }
-.zone .zn { font-size:12px; color:var(--c); font-weight:500; margin-top:3px; display:none; }
+# 3. EXTRAIRE PAGE
+@app.route('/extract', methods=['POST'])
+def extract():
+    f = request.files.get('file')
+    page_num = int(request.form.get('page', 1))
+    if not f: return jsonify(error="Aucun fichier recu."), 400
+    reader = PdfReader(save(f))
+    if page_num < 1 or page_num > len(reader.pages):
+        return jsonify(error=f"Page invalide. Ce PDF a {len(reader.pages)} page(s)."), 400
+    writer = PdfWriter()
+    writer.add_page(reader.pages[page_num - 1])
+    out = os.path.join(OUTPUT, f"page_{uid()}.pdf")
+    with open(out, 'wb') as fh: writer.write(fh)
+    return send_file(out, as_attachment=True, download_name=f'page_{page_num}.pdf')
 
-/* BTN */
-.btn {
-  width:100%; padding:12px; border:none; border-radius:10px; cursor:pointer;
-  background:linear-gradient(135deg,var(--bf),var(--bt)); color:#fff;
-  font-family:'Syne',sans-serif; font-size:14px; font-weight:700; letter-spacing:.2px;
-  transition:.2s; display:flex; align-items:center; justify-content:center; gap:7px;
-}
-.btn:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.35); }
-.btn:active { transform:none; }
-.btn.spin .bi { animation:spin .6s linear infinite; display:inline-block; }
-@keyframes spin { to { transform:rotate(360deg); } }
+# 4. SUPPRIMER PAGE
+@app.route('/delete', methods=['POST'])
+def delete():
+    f = request.files.get('file')
+    page_num = int(request.form.get('page', 1))
+    if not f: return jsonify(error="Aucun fichier recu."), 400
+    reader = PdfReader(save(f))
+    if page_num < 1 or page_num > len(reader.pages):
+        return jsonify(error=f"Page invalide. Ce PDF a {len(reader.pages)} page(s)."), 400
+    writer = PdfWriter()
+    for i, page in enumerate(reader.pages):
+        if i != page_num - 1:
+            writer.add_page(page)
+    out = os.path.join(OUTPUT, f"deleted_{uid()}.pdf")
+    with open(out, 'wb') as fh: writer.write(fh)
+    return send_file(out, as_attachment=True, download_name='sans_page.pdf')
 
-/* RESULT INLINE */
-.result { margin-top:12px; padding:10px 13px; border-radius:9px; font-size:13px; display:none; word-break:break-all; }
-.result.ok  { background:rgba(104,211,145,.08); border:1px solid rgba(104,211,145,.2); color:#68d391; }
-.result.err { background:rgba(252,129,129,.08); border:1px solid rgba(252,129,129,.2); color:#fc8181; }
-.result.txt { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07); color:#cbd5e1; white-space:pre-wrap; max-height:180px; overflow-y:auto; }
+# 5. PROTEGER
+@app.route('/protect', methods=['POST'])
+def protect():
+    f = request.files.get('file')
+    password = request.form.get('password', '')
+    if not f: return jsonify(error="Aucun fichier recu."), 400
+    if not password: return jsonify(error="Mot de passe requis."), 400
+    reader = PdfReader(save(f))
+    writer = PdfWriter()
+    for page in reader.pages: writer.add_page(page)
+    writer.encrypt(password)
+    out = os.path.join(OUTPUT, f"protected_{uid()}.pdf")
+    with open(out, 'wb') as fh: writer.write(fh)
+    return send_file(out, as_attachment=True, download_name='protege.pdf')
 
-/* TOAST */
-#toasts { position:fixed; bottom:28px; right:28px; z-index:999; display:flex; flex-direction:column; gap:8px; }
-.toast {
-  background:#0d1117; border:1px solid rgba(255,255,255,.08); border-radius:12px;
-  padding:12px 18px; display:flex; align-items:center; gap:10px;
-  font-size:13px; min-width:260px; box-shadow:0 12px 40px rgba(0,0,0,.5);
-  animation:tin .3s ease;
-}
-@keyframes tin { from{transform:translateX(30px);opacity:0} to{transform:none;opacity:1} }
+# 6. EXTRAIRE TEXTE
+@app.route('/text', methods=['POST'])
+def extract_text():
+    f = request.files.get('file')
+    if not f: return jsonify(error="Aucun fichier recu."), 400
+    reader = PdfReader(save(f))
+    text = ''
+    for i, page in enumerate(reader.pages):
+        t = page.extract_text()
+        if t: text += f"--- Page {i+1} ---\n{t}\n\n"
+    return jsonify(result=text.strip() or "(Aucun texte extractible)")
 
-footer { position:relative; z-index:1; text-align:center; padding:24px; color:#334155; font-size:12px; border-top:1px solid rgba(255,255,255,.04); }
-</style>
-</head>
-<body>
+# 7. CREER PDF
+@app.route('/create', methods=['POST'])
+def create():
+    data = request.json or {}
+    title   = data.get('title', 'Document').strip()
+    content = data.get('content', '').strip()
+    if not content: return jsonify(error="Contenu vide."), 400
+    out = os.path.join(OUTPUT, f"doc_{uid()}.pdf")
+    doc = SimpleDocTemplate(out, pagesize=A4,
+                            leftMargin=20*mm, rightMargin=20*mm,
+                            topMargin=25*mm, bottomMargin=20*mm)
+    styles = getSampleStyleSheet()
+    t_style = ParagraphStyle('T', parent=styles['Title'], fontSize=20,
+                             textColor=colors.HexColor('#1e293b'), spaceAfter=10)
+    b_style = ParagraphStyle('B', parent=styles['Normal'], fontSize=12,
+                             leading=18, textColor=colors.HexColor('#334155'))
+    story = [Paragraph(title, t_style), Spacer(1, 6*mm)]
+    for para in content.split('\n'):
+        if para.strip():
+            story.append(Paragraph(para.strip(), b_style))
+            story.append(Spacer(1, 3*mm))
+    doc.build(story)
+    return send_file(out, as_attachment=True, download_name=f'{title[:40]}.pdf')
 
-<header>
-  <div class="logo">
-    <div class="logo-icon">📄</div>
-    <div class="logo-text">pdf<span>BOX</span> Pro</div>
-  </div>
-  <div class="status"><div class="dot"></div>Serveur CORBA connecté — localhost:5000</div>
-</header>
+# 8. INFOS PDF
+@app.route('/info', methods=['POST'])
+def info():
+    f = request.files.get('file')
+    if not f: return jsonify(error="Aucun fichier recu."), 400
+    reader = PdfReader(save(f))
+    meta = reader.metadata or {}
+    return jsonify({
+        'pages':     len(reader.pages),
+        'title':     meta.get('/Title', '—'),
+        'author':    meta.get('/Author', '—'),
+        'creator':   meta.get('/Creator', '—'),
+        'encrypted': reader.is_encrypted
+    })
 
-<div class="hero">
-  <h1>Gestion <em>PDF intelligente</em><br>via CORBA</h1>
-  <p>Interface web connectée au serveur CORBA Java. Toutes les opérations sont exécutées côté serveur via PDFBox.</p>
-</div>
-
-<div class="grid">
-
-  <!-- 1. FUSION -->
-  <div class="card c1">
-    <div class="card-head"><div class="icon">🔗</div><h3>Fusion de PDFs</h3></div>
-    <p class="desc">Assemblez plusieurs PDF en un seul document.</p>
-    <div class="field"><label>Chemins des PDFs (séparés par ;)</label><input type="text" id="m-paths" placeholder="C:\doc1.pdf;C:\doc2.pdf"></div>
-    <div class="field"><label>Fichier de sortie</label><input type="text" id="m-out" placeholder="C:\fusion.pdf"></div>
-    <button class="btn" onclick="call('merge',this)"><span class="bi">🔗</span> Fusionner</button>
-    <div class="result" id="r-merge"></div>
-  </div>
-
-  <!-- 2. DECOUPAGE -->
-  <div class="card c2">
-    <div class="card-head"><div class="icon">✂️</div><h3>Découpage PDF</h3></div>
-    <p class="desc">Séparez chaque page en fichier individuel.</p>
-    <div class="field"><label>Chemin du PDF</label><input type="text" id="s-in" placeholder="C:\document.pdf"></div>
-    <div class="field"><label>Dossier de sortie</label><input type="text" id="s-out" placeholder="C:\pages"></div>
-    <button class="btn" onclick="call('split',this)"><span class="bi">✂️</span> Découper</button>
-    <div class="result" id="r-split"></div>
-  </div>
-
-  <!-- 3. EXTRAIRE PAGE -->
-  <div class="card c3">
-    <div class="card-head"><div class="icon">📌</div><h3>Extraire une page</h3></div>
-    <p class="desc">Récupérez une page précise d'un PDF.</p>
-    <div class="field"><label>Chemin du PDF</label><input type="text" id="e-in" placeholder="C:\document.pdf"></div>
-    <div class="field"><label>Numéro de page</label><input type="number" id="e-pg" placeholder="3" min="1"></div>
-    <div class="field"><label>Fichier de sortie</label><input type="text" id="e-out" placeholder="C:\page3.pdf"></div>
-    <button class="btn" onclick="call('extract',this)"><span class="bi">📌</span> Extraire</button>
-    <div class="result" id="r-extract"></div>
-  </div>
-
-  <!-- 4. SUPPRIMER PAGE -->
-  <div class="card c4">
-    <div class="card-head"><div class="icon">🗑️</div><h3>Supprimer une page</h3></div>
-    <p class="desc">Supprimez une page d'un PDF existant.</p>
-    <div class="field"><label>Chemin du PDF</label><input type="text" id="d-in" placeholder="C:\document.pdf"></div>
-    <div class="field"><label>Numéro de page</label><input type="number" id="d-pg" placeholder="2" min="1"></div>
-    <div class="field"><label>Fichier de sortie</label><input type="text" id="d-out" placeholder="C:\resultat.pdf"></div>
-    <button class="btn" onclick="call('delete',this)"><span class="bi">🗑️</span> Supprimer</button>
-    <div class="result" id="r-delete"></div>
-  </div>
-
-  <!-- 5. PROTEGER -->
-  <div class="card c5">
-    <div class="card-head"><div class="icon">🔐</div><h3>Protéger PDF</h3></div>
-    <p class="desc">Ajoutez un mot de passe à votre document.</p>
-    <div class="field"><label>Chemin du PDF</label><input type="text" id="p-in" placeholder="C:\document.pdf"></div>
-    <div class="field"><label>Mot de passe</label><input type="password" id="p-pw" placeholder="••••••••"></div>
-    <div class="field"><label>Fichier de sortie</label><input type="text" id="p-out" placeholder="C:\protege.pdf"></div>
-    <button class="btn" onclick="call('protect',this)"><span class="bi">🔐</span> Protéger</button>
-    <div class="result" id="r-protect"></div>
-  </div>
-
-  <!-- 6. PDF → IMAGES -->
-  <div class="card c6">
-    <div class="card-head"><div class="icon">🖼️</div><h3>PDF → Images</h3></div>
-    <p class="desc">Convertissez chaque page en image PNG ou JPG.</p>
-    <div class="field"><label>Chemin du PDF</label><input type="text" id="i-in" placeholder="C:\document.pdf"></div>
-    <div class="field"><label>Dossier de sortie</label><input type="text" id="i-out" placeholder="C:\images"></div>
-    <div class="field"><label>Format (png / jpg)</label><input type="text" id="i-fmt" placeholder="png"></div>
-    <button class="btn" onclick="call('images',this)"><span class="bi">🖼️</span> Convertir</button>
-    <div class="result" id="r-images"></div>
-  </div>
-
-  <!-- 7. EXTRAIRE TEXTE -->
-  <div class="card c7">
-    <div class="card-head"><div class="icon">📝</div><h3>Extraction de texte</h3></div>
-    <p class="desc">Récupérez tout le texte contenu dans un PDF.</p>
-    <div class="field"><label>Chemin du PDF</label><input type="text" id="t-in" placeholder="C:\document.pdf"></div>
-    <button class="btn" onclick="call('text',this)"><span class="bi">📝</span> Extraire</button>
-    <div class="result" id="r-text"></div>
-  </div>
-
-  <!-- 8. CREER PDF -->
-  <div class="card c8">
-    <div class="card-head"><div class="icon">✍️</div><h3>Créer un PDF</h3></div>
-    <p class="desc">Générez un nouveau PDF à partir de texte.</p>
-    <div class="field"><label>Titre</label><input type="text" id="c-title" placeholder="Mon document"></div>
-    <div class="field"><label>Contenu</label><textarea id="c-content" placeholder="Écrivez votre contenu ici..."></textarea></div>
-    <div class="field"><label>Fichier de sortie</label><input type="text" id="c-out" placeholder="C:\nouveau.pdf"></div>
-    <button class="btn" onclick="call('create',this)"><span class="bi">✍️</span> Créer</button>
-    <div class="result" id="r-create"></div>
-  </div>
-
-</div>
-
-<footer>pdfBOX Pro · Architecture CORBA + PDFBox · Master MaDSI</footer>
-<div id="toasts"></div>
-
-<script>
-const API = 'http://localhost:5000';
-
-async function call(action, btn) {
-  const bi = btn.querySelector('.bi');
-  btn.disabled = true; btn.classList.add('spin');
-  const orig = bi.textContent; bi.textContent = '⟳';
-
-  let url, body, method = 'POST';
-  const h = {'Content-Type':'application/json'};
-
-  const data = {
-    merge:   () => ({inputPaths: v('m-paths'), outputPath: v('m-out')}),
-    split:   () => ({inputPath:  v('s-in'),    outputDir:  v('s-out')}),
-    extract: () => ({inputPath:  v('e-in'),    pageNumber: parseInt(v('e-pg')), outputPath: v('e-out')}),
-    delete:  () => ({inputPath:  v('d-in'),    pageNumber: parseInt(v('d-pg')), outputPath: v('d-out')}),
-    protect: () => ({inputPath:  v('p-in'),    password:   v('p-pw'),  outputPath: v('p-out')}),
-    images:  () => ({inputPath:  v('i-in'),    outputDir:  v('i-out'), format: v('i-fmt')||'png'}),
-    text:    () => ({inputPath:  v('t-in')}),
-    create:  () => ({title: v('c-title'), content: v('c-content'), outputPath: v('c-out')}),
-  }[action]?.();
-
-  const routes = {merge:'merge',split:'split',extract:'extract',delete:'delete',protect:'protect',images:'images',text:'text',create:'create'};
-
-  try {
-    const res = await fetch(`${API}/${routes[action]}`, {method, headers:h, body:JSON.stringify(data)});
-    const json = await res.json();
-    const result = json.result || json.text || json.error || JSON.stringify(json);
-    show('r-'+action, result);
-    toast(result.startsWith('OK') ? '✅ '+result : '❌ '+result, result.startsWith('OK'));
-  } catch(e) {
-    show('r-'+action, 'Erreur connexion serveur: ' + e.message, true);
-    toast('❌ Impossible de joindre le serveur Flask', false);
-  }
-
-  btn.disabled = false; btn.classList.remove('spin'); bi.textContent = orig;
-}
-
-function v(id) { return document.getElementById(id)?.value?.trim() || ''; }
-
-function show(id, msg, force_err=false) {
-  const el = document.getElementById(id);
-  el.style.display = 'block';
-  const isErr = force_err || msg.startsWith('ERREUR') || msg.startsWith('Erreur');
-  const isTxt = msg.length > 60 && !msg.startsWith('OK') && !isErr;
-  el.className = 'result ' + (isErr ? 'err' : isTxt ? 'txt' : 'ok');
-  el.textContent = msg;
-}
-
-function toast(msg, ok=true) {
-  const c = document.getElementById('toasts');
-  const t = document.createElement('div');
-  t.className = 'toast';
-  t.style.borderColor = ok ? 'rgba(104,211,145,.25)' : 'rgba(252,129,129,.25)';
-  t.textContent = msg;
-  c.appendChild(t);
-  setTimeout(() => t.remove(), 4000);
-}
-</script>
-</body>
-</html>
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
