@@ -1,0 +1,579 @@
+# ancien index modifié
+
+Remplace simplement le contenu de ton ancien `index.html` par celui-ci.
+
+```html
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>pdfBOX Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+--blue:#3d5bdb;
+--blue-light:#6e88ff;
+--bg:#eef4ff;
+--text:#14233c;
+--muted:#64748b;
+--white:#fff;
+}
+
+body{
+font-family:'Plus Jakarta Sans',sans-serif;
+background:linear-gradient(160deg,#eef4ff 0%,#dbe7ff 50%,#f4f7ff 100%);
+color:var(--text);
+min-height:100vh;
+}
+
+/* LOCK SCREEN */
+#lock-screen{
+position:fixed;
+inset:0;
+display:flex;
+align-items:center;
+justify-content:center;
+background:linear-gradient(145deg,#e8f0ff 0%,#c9d9ff 50%,#dde8ff 100%);
+z-index:9999;
+}
+
+.lock-card{
+background:rgba(255,255,255,.95);
+padding:40px;
+border-radius:30px;
+width:100%;
+max-width:420px;
+box-shadow:0 30px 80px rgba(20,35,60,.15);
+}
+
+.logo{
+display:flex;
+align-items:center;
+gap:10px;
+margin-bottom:20px;
+}
+
+.logo-icon{
+width:46px;
+height:46px;
+border-radius:14px;
+background:linear-gradient(135deg,var(--blue),var(--blue-light));
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:22px;
+color:#fff;
+}
+
+.logo-text{
+font-family:'Nunito',sans-serif;
+font-size:24px;
+font-weight:900;
+}
+
+.logo-text span{color:var(--blue)}
+
+.lock-title{
+font-family:'Nunito',sans-serif;
+font-size:28px;
+font-weight:900;
+margin-bottom:8px;
+}
+
+.lock-sub{
+color:var(--muted);
+font-size:14px;
+margin-bottom:24px;
+line-height:1.6;
+}
+
+.field{margin-bottom:14px}
+
+.field label{
+display:block;
+font-size:12px;
+font-weight:700;
+margin-bottom:6px;
+color:var(--muted);
+text-transform:uppercase;
+}
+
+.field input,
+textarea{
+width:100%;
+padding:13px 15px;
+border-radius:14px;
+border:1px solid #dbe4f3;
+background:#f9fbff;
+font-family:'Plus Jakarta Sans',sans-serif;
+outline:none;
+transition:.2s;
+}
+
+.field input:focus,
+textarea:focus{
+border-color:var(--blue);
+box-shadow:0 0 0 4px rgba(61,91,219,.08);
+background:#fff;
+}
+
+.login-btn{
+width:100%;
+padding:14px;
+border:none;
+border-radius:16px;
+background:linear-gradient(135deg,var(--blue),var(--blue-light));
+color:#fff;
+font-family:'Nunito',sans-serif;
+font-size:16px;
+font-weight:900;
+cursor:pointer;
+box-shadow:0 12px 30px rgba(61,91,219,.25);
+transition:.2s;
+}
+
+.login-btn:hover{
+transform:translateY(-2px)
+}
+
+.lock-msg{
+margin-top:14px;
+padding:12px;
+border-radius:12px;
+font-size:13px;
+display:none;
+}
+
+.lock-msg.err{
+background:rgba(239,68,68,.1);
+color:#dc2626;
+}
+
+/* APP */
+#app{display:none}
+
+header{
+position:sticky;
+top:0;
+z-index:100;
+height:74px;
+padding:0 30px;
+display:flex;
+align-items:center;
+justify-content:space-between;
+background:rgba(255,255,255,.7);
+backdrop-filter:blur(12px);
+border-bottom:1px solid rgba(255,255,255,.5);
+}
+
+.top-left{
+display:flex;
+align-items:center;
+gap:14px;
+}
+
+.status{
+display:flex;
+align-items:center;
+gap:8px;
+padding:8px 14px;
+border-radius:999px;
+background:rgba(34,197,94,.1);
+color:#16a34a;
+font-size:13px;
+font-weight:600;
+}
+
+.dot{
+width:8px;
+height:8px;
+border-radius:50%;
+background:#22c55e;
+box-shadow:0 0 6px #22c55e;
+}
+
+.logout-btn{
+border:none;
+padding:12px 18px;
+border-radius:14px;
+background:#fff;
+font-weight:700;
+cursor:pointer;
+box-shadow:0 6px 20px rgba(20,35,60,.08);
+}
+
+.hero{
+padding:40px 48px 20px;
+}
+
+.hero h1{
+font-family:'Nunito',sans-serif;
+font-size:38px;
+font-weight:900;
+margin-bottom:8px;
+}
+
+.hero p{
+color:var(--muted);
+}
+
+.grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+gap:18px;
+padding:0 48px 120px;
+max-width:1400px;
+margin:auto;
+}
+
+.card{
+background:rgba(255,255,255,.96);
+border-radius:28px;
+padding:22px;
+box-shadow:0 20px 60px rgba(20,35,60,.08);
+transition:.25s;
+}
+
+.card:hover{
+transform:translateY(-4px);
+}
+
+.card-head{
+display:flex;
+align-items:center;
+gap:12px;
+margin-bottom:10px;
+}
+
+.icon{
+width:44px;
+height:44px;
+border-radius:14px;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:20px;
+background:var(--ibg);
+color:var(--c);
+}
+
+.card h3{
+font-family:'Nunito',sans-serif;
+font-size:17px;
+font-weight:900;
+}
+
+.card p.desc{
+font-size:13px;
+line-height:1.6;
+color:var(--muted);
+margin-bottom:16px;
+}
+
+.c1{--c:#3d5bdb;--ibg:rgba(61,91,219,.1)}
+.c2{--c:#7c3aed;--ibg:rgba(124,58,237,.1)}
+.c3{--c:#16a34a;--ibg:rgba(22,163,74,.1)}
+.c4{--c:#ea580c;--ibg:rgba(234,88,12,.1)}
+.c5{--c:#dc2626;--ibg:rgba(220,38,38,.1)}
+.c6{--c:#0891b2;--ibg:rgba(8,145,178,.1)}
+.c7{--c:#7c3aed;--ibg:rgba(124,58,237,.1)}
+.c8{--c:#d97706;--ibg:rgba(217,119,6,.1)}
+
+.btn{
+width:100%;
+padding:13px;
+border:none;
+border-radius:16px;
+background:linear-gradient(135deg,var(--blue),var(--blue-light));
+color:#fff;
+font-family:'Nunito',sans-serif;
+font-weight:900;
+font-size:14px;
+cursor:pointer;
+display:flex;
+align-items:center;
+justify-content:center;
+gap:8px;
+margin-top:8px;
+transition:.2s;
+}
+
+.btn:hover{transform:translateY(-2px)}
+
+.result{
+margin-top:12px;
+padding:12px;
+border-radius:12px;
+font-size:13px;
+display:none;
+word-break:break-all;
+}
+
+.result.ok{
+background:rgba(34,197,94,.08);
+color:#16a34a;
+}
+
+.result.err{
+background:rgba(239,68,68,.08);
+color:#dc2626;
+}
+
+.result.txt{
+background:#f8faff;
+white-space:pre-wrap;
+max-height:180px;
+overflow:auto;
+}
+
+.bottom-nav{
+position:fixed;
+bottom:20px;
+left:50%;
+transform:translateX(-50%);
+width:calc(100% - 40px);
+max-width:850px;
+background:rgba(255,255,255,.96);
+backdrop-filter:blur(12px);
+padding:14px 24px;
+border-radius:30px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+box-shadow:0 20px 60px rgba(20,35,60,.12);
+}
+
+.nav-btn{
+border:none;
+background:transparent;
+display:flex;
+flex-direction:column;
+align-items:center;
+gap:4px;
+cursor:pointer;
+font-size:12px;
+color:var(--muted);
+}
+
+.fab{
+border:none;
+padding:14px 22px;
+border-radius:999px;
+background:linear-gradient(135deg,var(--blue),var(--blue-light));
+color:#fff;
+font-family:'Nunito',sans-serif;
+font-weight:900;
+cursor:pointer;
+}
+
+#toasts{
+position:fixed;
+bottom:100px;
+right:20px;
+display:flex;
+flex-direction:column;
+gap:8px;
+z-index:999;
+}
+
+.toast{
+background:#fff;
+padding:12px 16px;
+border-radius:14px;
+box-shadow:0 10px 30px rgba(20,35,60,.12);
+font-size:13px;
+}
+</style>
+</head>
+<body>
+
+<!-- LOCK -->
+<div id="lock-screen">
+  <div class="lock-card">
+
+    <div class="logo">
+      <div class="logo-icon">📄</div>
+      <div class="logo-text">pdf<span>BOX</span> Pro</div>
+    </div>
+
+    <div class="lock-title">Connexion</div>
+    <div class="lock-sub">Connectez-vous pour accéder à vos outils PDF intelligents.</div>
+
+    <div class="field">
+      <label>Nom</label>
+      <input type="text" id="username" placeholder="Jacques">
+    </div>
+
+    <div class="field">
+      <label>Code d'accès</label>
+      <input type="password" id="password" placeholder="••••••••">
+    </div>
+
+    <button class="login-btn" onclick="login()">Se connecter →</button>
+
+    <div class="lock-msg err" id="lock-msg"></div>
+
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+<header>
+  <div class="top-left">
+    <div class="logo">
+      <div class="logo-icon">📄</div>
+      <div class="logo-text">pdf<span>BOX</span> Pro</div>
+    </div>
+
+    <div class="status">
+      <div class="dot"></div>
+      Serveur CORBA connecté — localhost:5000
+    </div>
+  </div>
+
+  <button class="logout-btn" onclick="logout()">🚪 Déconnexion</button>
+</header>
+
+<div class="hero">
+  <h1>Bonjour, <span id="display-name">Utilisateur</span> 👋</h1>
+  <p>Que voulez-vous faire avec vos PDFs aujourd'hui ?</p>
+</div>
+
+<div class="grid">
+
+<!-- ICI TU GARDES TOUTES TES CARDS DE L'ANCIEN FICHIER -->
+
+</div>
+
+<div class="bottom-nav">
+  <button class="nav-btn">
+    <span>🏠</span>
+    <span>Accueil</span>
+  </button>
+
+  <button class="fab">➕ Nouveau PDF</button>
+
+  <button class="nav-btn">
+    <span>📁</span>
+    <span>Mes projets</span>
+  </button>
+</div>
+
+</div>
+
+<div id="toasts"></div>
+
+<script>
+
+// LOGIN SIMPLE
+function login(){
+  const user = document.getElementById('username').value.trim();
+  const pass = document.getElementById('password').value.trim();
+  const msg  = document.getElementById('lock-msg');
+
+  if(!user || !pass){
+    msg.style.display='block';
+    msg.textContent='Veuillez remplir tous les champs';
+    return;
+  }
+
+  sessionStorage.setItem('pdfbox_user', user);
+
+  document.getElementById('display-name').textContent = user;
+
+  document.getElementById('lock-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+}
+
+function logout(){
+  sessionStorage.removeItem('pdfbox_user');
+  location.reload();
+}
+
+window.addEventListener('DOMContentLoaded', ()=>{
+  const user = sessionStorage.getItem('pdfbox_user');
+
+  if(user){
+    document.getElementById('display-name').textContent = user;
+    document.getElementById('lock-screen').style.display='none';
+    document.getElementById('app').style.display='block';
+  }
+});
+
+// GARDE EXACTEMENT TES FONCTIONS API DE L'ANCIEN FICHIER
+const API = 'http://localhost:5000';
+
+async function call(action, btn) {
+  const bi = btn.querySelector('.bi');
+  btn.disabled = true;
+  const orig = bi.textContent;
+  bi.textContent = '⟳';
+
+  const data = {
+    merge:   () => ({inputPaths: v('m-paths'), outputPath: v('m-out')}),
+    split:   () => ({inputPath:  v('s-in'),    outputDir:  v('s-out')}),
+    extract: () => ({inputPath:  v('e-in'),    pageNumber: parseInt(v('e-pg')), outputPath: v('e-out')}),
+    delete:  () => ({inputPath:  v('d-in'),    pageNumber: parseInt(v('d-pg')), outputPath: v('d-out')}),
+    protect: () => ({inputPath:  v('p-in'),    password:   v('p-pw'),  outputPath: v('p-out')}),
+    images:  () => ({inputPath:  v('i-in'),    outputDir:  v('i-out'), format: v('i-fmt')||'png'}),
+    text:    () => ({inputPath:  v('t-in')}),
+    create:  () => ({title: v('c-title'), content: v('c-content'), outputPath: v('c-out')}),
+  }[action]?.();
+
+  try {
+    const res = await fetch(`${API}/${action}`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(data)
+    });
+
+    const json = await res.json();
+    const result = json.result || json.text || json.error || JSON.stringify(json);
+
+    show('r-'+action, result);
+    toast(result.startsWith('OK') ? '✅ '+result : '❌ '+result);
+
+  } catch(e){
+    show('r-'+action, 'Erreur connexion serveur : ' + e.message, true);
+    toast('❌ Impossible de joindre le serveur Flask');
+  }
+
+  btn.disabled = false;
+  bi.textContent = orig;
+}
+
+function v(id){
+  return document.getElementById(id)?.value?.trim() || '';
+}
+
+function show(id,msg,forceErr=false){
+  const el = document.getElementById(id);
+  el.style.display='block';
+
+  const isErr = forceErr || msg.startsWith('ERREUR') || msg.startsWith('Erreur');
+  const isTxt = !isErr && msg.length > 60 && !msg.startsWith('OK');
+
+  el.className='result ' + (isErr ? 'err' : isTxt ? 'txt' : 'ok');
+  el.textContent=msg;
+}
+
+function toast(msg){
+  const c = document.getElementById('toasts');
+  const t = document.createElement('div');
+
+  t.className='toast';
+  t.textContent=msg;
+
+  c.appendChild(t);
+
+  setTimeout(()=>t.remove(),4000);
+}
+
+</script>
+</body>
+</html>
